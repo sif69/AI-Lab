@@ -1,0 +1,64 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int gcd(int a, int b) {
+    return (b == 0) ? a : gcd(b, a % b);
+}
+
+vector<pair<int, int>> pourWithTrace(int fromCap, int toCap, int d) {
+    int from = fromCap;
+    int to = 0;
+
+    vector<pair<int, int>> trace;
+    trace.push_back({0, 0});       // initial state
+    trace.push_back({from, to});   // filled from jug
+
+    while (from != d && to != d) {
+        int temp = min(from, toCap - to);
+        to += temp;
+        from -= temp;
+        trace.push_back({from, to});
+
+        if (from == d || to == d)
+            break;
+
+        if (from == 0) {
+            from = fromCap;
+            trace.push_back({from, to});
+        }
+
+        if (to == toCap) {
+            to = 0;
+            trace.push_back({from, to});
+        }
+    }
+
+    return trace;
+}
+
+void minSteps(int m, int n, int d) {
+    if (m > n) swap(m, n);
+    if (d > n || (d % gcd(n, m)) != 0) {
+        cout << "Not possible\n";
+        return;
+    }
+
+    vector<pair<int, int>> path1 = pourWithTrace(n, m, d);
+    vector<pair<int, int>> path2 = pourWithTrace(m, n, d);
+
+    vector<pair<int, int>> result = (path1.size() <= path2.size()) ? path1 : path2;
+
+    for (size_t i = 0; i < result.size(); ++i) {
+        cout << "(" << result[i].first << "," << result[i].second << ")";
+        if (i != result.size() - 1)
+            cout << " -> ";
+    }
+
+    cout << "\nMinimum number of steps required is " << result.size() - 1 << endl;
+}
+
+int main() {
+    int n = 3, m = 5, d = 4;
+    minSteps(m, n, d);
+    return 0;
+}
