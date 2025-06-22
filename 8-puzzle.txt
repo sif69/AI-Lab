@@ -1,0 +1,169 @@
+* 8-Puzzle Problem using A* Search
+ * To solve the 8-puzzle problem, here are the steps we can follow:
+ * 1. Represent the board as a 3x3 2D array.
+ * 2. Define the goal state as:
+ *    1 2 3
+ *    4 5 6
+ *    7 8 0
+ * 3. Use A* Search algorithm to find the shortest path from the initial
+ *    state to the goal.
+ * 4. At each step:
+ *    - Find the blank tile (0) and try all 4 possible directions (up, down, left, right).
+ *    - Skip out-of-bound moves.
+ *    - Calculate heuristic (Manhattan Distance) for each new state.
+ *    - Push new states into a priority queue sorted by f(n) = g(n) + h(n).
+ * 5. Track visited states to avoid cycles.
+ * 6. Stop when the goal state is reached and print the sequence of moves.
+ *
+ * What we need to solve it:
+ * - A 3x3 board represented as a 2D array
+ * - A function to calculate the Manhattan distance
+ * - A function to generate valid moves
+ * - A priority queue (min-heap) for A* search
+ * - A function to print a board path
+ */
+
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <map>
+#include <string>
+#include <cmath>
+
+using namespace std;
+
+// Directions: up, down, left, right
+vector<pair<int, int>> directions = {
+    {-1, 0}, {1, 0}, {0, -1}, {0, 1}
+};
+
+vector<vector<int>> goal = {
+    {1, 2, 3},
+    {4, 5, 6},
+    {7, 8, 0}
+};
+
+// Convert 2D board to string (for map keys)
+string boardToString(const vector<vector<int>>& board) {
+    string s;
+    for (const auto& row : board)
+        for (int val : row)
+            s += to_string(val);
+    return s;
+}
+
+// Print the 3x3 board
+void printBoard(const vector<vector<int>>& board) {
+    for (const auto& row : board) {
+        for (int val : row)
+            cout << val << " ";
+        cout << "\n";
+    }
+    cout << "\n";
+}
+
+// Manhattan Distance
+int manhattan(const vector<vector<int>>& board) {
+    int dist = 0;
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j) {
+            int val = board[i][j];
+            if (val == 0) continue;
+            int goalX = (val - 1) / 3;
+            int goalY = (val - 1) % 3;
+            dist += abs(i - goalX) + abs(j - goalY);
+        }
+    return dist;
+}
+
+// State representation
+struct State {
+    vector<vector<int>> board;
+    int g, h;
+    vector<vector<vector<int>>> path;
+
+    State(vector<vector<int>> b, int g_val, int h_val, vector<vector<vector<int>>> p)
+        : board(b), g(g_val), h(h_val), path(p) {}
+
+    int f() const { return g + h; }
+
+    bool operator>(const State& other) const {
+        return f() > other.f();
+    }
+};
+
+// Check goal
+bool isGoal(const vector<vector<int>>& board) {
+    return board == goal;
+}
+
+// Get next states
+vector<State> getNeighbors(const State& state) {
+    vector<State> neighbors;
+    int x = -1, y = -1;
+
+    // Find 0 position
+    for (int i = 0; i < 3 && x == -1; ++i)
+        for (int j = 0; j < 3 && y == -1; ++j)
+            if (state.board[i][j] == 0)
+                x = i, y = j;
+
+    for (auto [dx, dy] : directions) {
+        int nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= 3 || ny >= 3) continue;
+
+        vector<vector<int>> newBoard = state.board;
+        swap(newBoard[x][y], newBoard[nx][ny]);
+        int h = manhattan(newBoard);
+        auto newPath = state.path;
+        newPath.push_back(newBoard);
+        neighbors.emplace_back(newBoard, state.g + 1, h, newPath);
+    }
+
+    return neighbors;
+}
+
+void solve8Puzzle(const vector<vector<int>>& initial) {
+    priority_queue<State, vector<State>, greater<>> pq;
+    map<string, int> visited;
+
+    int h = manhattan(initial);
+    vector<vector<vector<int>>> path = {initial};
+    pq.emplace(initial, 0, h, path);
+
+    while (!pq.empty()) {
+        State current = pq.top();
+        pq.pop();
+
+        string key = boardToString(current.board);
+        if (visited.count(key) && visited[key] <= current.g) continue;
+        visited[key] = current.g;
+
+        if (isGoal(current.board)) {
+            cout << "Solved in " << current.g << " moves.\n\n";
+            for (const auto& step : current.path)
+                printBoard(step);
+            return;
+        }
+
+        for (auto& neighbor : getNeighbors(current))
+            pq.push(neighbor);
+    }
+
+    cout << "No solution found.\n";
+}
+
+int main() {
+    vector<vector<int>> initial = {
+        {1, 4, 2},
+        {0, 5, 3},
+        {7, 8, 6}
+    };
+
+    cout << "Initial Board:\n";
+    printBoard(initial);
+
+    solve8Puzzle(initial);
+
+    return 0;
+}
